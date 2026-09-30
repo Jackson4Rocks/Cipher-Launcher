@@ -27,6 +27,7 @@ class SecurityStore(context: Context) {
             .putString(KEY_WATCH_HASH, watch.second)
             .putString(KEY_HOME_SALT, home.first)
             .putString(KEY_HOME_HASH, home.second)
+            .putInt(KEY_ITERATIONS, CURRENT_ITERATIONS)
             .apply()
     }
 
@@ -73,13 +74,29 @@ class SecurityStore(context: Context) {
 
         val salt = saltHex.hexToBytes()
         val expected = expectedHex.hexToBytes()
-        val actual = hash(pin, salt)
+        val iterations = prefs.getInt(KEY_ITERATIONS, LEGACY_ITERATIONS)
+        val actual = hash(pin, salt, iterations)
+        val valid = MessageDigest.isEqual(actual, expected)
 
-        return MessageDigest.isEqual(actual, expected)
+        if (valid && iterations != CURRENT_ITERATIONS) {
+            val record = createRecord(pin)
+            val editor = prefs.edit()
+            when {
+                saltKey == KEY_WATCH_SALT -> editor
+                    .putString(KEY_WATCH_SALT, record.first)
+                    .putString(KEY_WATCH_HASH, record.second)
+                saltKey == KEY_HOME_SALT -> editor
+                    .putString(KEY_HOME_SALT, record.first)
+                    .putString(KEY_HOME_HASH, record.second)
+            }
+            editor.putInt(KEY_ITERATIONS, CURRENT_ITERATIONS).apply()
+        }
+
+        return valid
     }
 
-    private fun hash(pin: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(pin.toCharArray(), salt, 120_000, 256)
+    private fun hash(pin: String, salt: ByteArray, iterations: Int = CURRENT_ITERATIONS): ByteArray {
+        val spec = PBEKeySpec(pin.toCharArray(), salt, iterations, 256)
         return try {
             SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
                 .generateSecret(spec)
@@ -100,5 +117,8 @@ class SecurityStore(context: Context) {
         const val KEY_WATCH_HASH = "watch_hash"
         const val KEY_HOME_SALT = "home_salt"
         const val KEY_HOME_HASH = "home_hash"
+        const val KEY_ITERATIONS = "iterations"
+        const val CURRENT_ITERATIONS = 10_000
+        const val LEGACY_ITERATIONS = 120_000
     }
 }
