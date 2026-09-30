@@ -546,25 +546,25 @@ private fun EntryClock(
     val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
 
     Column(
-        modifier = modifier.padding(horizontal = 20.dp),
+        modifier = modifier.padding(horizontal = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             hour,
-            fontSize = 82.sp,
-            lineHeight = 74.sp,
+            fontSize = 118.sp,
+            lineHeight = 104.sp,
             fontWeight = FontWeight.Light,
-            letterSpacing = (-4).sp
+            letterSpacing = (-6).sp
         )
         Text(
             minute,
-            fontSize = 82.sp,
-            lineHeight = 74.sp,
+            fontSize = 118.sp,
+            lineHeight = 104.sp,
             fontWeight = FontWeight.Light,
-            letterSpacing = (-4).sp
+            letterSpacing = (-6).sp
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
             date.uppercase(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
