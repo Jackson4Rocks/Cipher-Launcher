@@ -160,6 +160,11 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 
+    override fun onBackPressed() {
+        // Cipher is the home launcher: never let repeated Back presses finish the
+        // launcher activity. Individual Compose screens handle their own Back actions.
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) configureWindow(window)
