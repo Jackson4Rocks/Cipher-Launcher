@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -121,6 +120,11 @@ class MainActivity : ComponentActivity() {
                     launcherRepository = launcherRepository,
                     stepCounter = stepCounter,
                     battery = readBatteryPercent(),
+                    amoled = amoled,
+                    onAmoledChanged = {
+                        amoled = it
+                        settings.amoled = it
+                    },
                     openHomeSettings = ::openHomeSettings
                 )
             }
@@ -166,12 +170,13 @@ private fun CipherLauncherApp(
     launcherRepository: LauncherRepository,
     stepCounter: StepCounter,
     battery: Int,
+    amoled: Boolean,
+    onAmoledChanged: (Boolean) -> Unit,
     openHomeSettings: () -> Unit
 ) {
     val context = LocalContext.current
     var configured by remember { mutableStateOf(security.isConfigured()) }
     var mode by remember { mutableStateOf(AppMode.ENTRY) }
-    var amoled by remember { mutableStateOf(settings.amoled) }
     var showSeconds by remember { mutableStateOf(settings.showSeconds) }
     var setupError by remember { mutableStateOf<String?>(null) }
 
@@ -246,10 +251,7 @@ private fun CipherLauncherApp(
             security = security,
             amoled = amoled,
             showSeconds = showSeconds,
-            onAmoledChanged = {
-                amoled = it
-                settings.amoled = it
-            },
+            onAmoledChanged = onAmoledChanged,
             onSecondsChanged = {
                 showSeconds = it
                 settings.showSeconds = it
@@ -531,7 +533,7 @@ private fun HomeScreen(
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 20.dp)
