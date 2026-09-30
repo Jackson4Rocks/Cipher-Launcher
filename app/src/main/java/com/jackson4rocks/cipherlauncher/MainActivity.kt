@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Window
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,6 +46,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Watch
 import androidx.compose.material3.AlertDialog
@@ -774,116 +776,291 @@ private fun HomeScreen(
 ) {
     val apps = remember { repository.apps() }
     var now by remember { mutableStateOf(Date()) }
+    var drawerOpen by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         while (true) {
             now = Date()
-            delay(1000)
+            delay(1000L)
         }
     }
 
-    val time = SimpleDateFormat("h:mm a", Locale.getDefault()).format(now)
+    BackHandler(enabled = drawerOpen) {
+        drawerOpen = false
+        searchQuery = ""
+    }
+
+    if (drawerOpen) {
+        AppDrawerScreen(
+            apps = apps,
+            searchQuery = searchQuery,
+            onSearchQueryChanged = { searchQuery = it },
+            onClose = {
+                drawerOpen = false
+                searchQuery = ""
+            },
+            repository = repository
+        )
+    } else {
+        HomeOverviewScreen(
+            now = now,
+            steps = steps,
+            battery = battery,
+            onSettings = onSettings,
+            onLock = onLock,
+            onOpenDrawer = { drawerOpen = true }
+        )
+    }
+}
+
+@Composable
+private fun HomeOverviewScreen(
+    now: Date,
+    steps: Long,
+    battery: Int,
+    onSettings: () -> Unit,
+    onLock: () -> Unit,
+    onOpenDrawer: () -> Unit
+) {
+    val time = SimpleDateFormat("h:mm", Locale.getDefault()).format(now)
+    val amPm = SimpleDateFormat("a", Locale.getDefault()).format(now)
     val date = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(now)
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { _, dragAmount ->
+                        if (dragAmount < -24f) {
+                            onOpenDrawer()
+                        }
+                    }
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(time, fontSize = 28.sp, fontWeight = FontWeight.Medium)
-                Text(date.uppercase(), fontSize = 9.sp, letterSpacing = 1.2.sp)
-            }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-            }
-            IconButton(onClick = onLock) {
-                Icon(Icons.Outlined.Lock, contentDescription = "Lock")
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-            ),
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("STEPS", fontSize = 9.sp, letterSpacing = 1.sp)
-                    Text("$steps", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "CIPHER",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.2.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onSettings) {
+                    Icon(
+                        Icons.Outlined.Settings,
+                        contentDescription = "Settings"
+                    )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("BATTERY", fontSize = 9.sp, letterSpacing = 1.sp)
-                    Text("$battery%", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                IconButton(onClick = onLock) {
+                    Icon(
+                        Icons.Outlined.Lock,
+                        contentDescription = "Lock"
+                    )
                 }
             }
-        }
 
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.weight(1f))
 
-        Text(
-            "APPS",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.8.sp,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 20.dp)
-        ) {
-            items(apps, key = { "${it.packageName}/${it.activityName}" }) { app ->
-                AppTile(app = app, onClick = { repository.launch(app) })
+            Row(
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    time,
+                    fontSize = 62.sp,
+                    lineHeight = 60.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-3).sp
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    amPm,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.8.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
             }
+
+            Spacer(Modifier.height(7.dp))
+            Text(
+                date.uppercase(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 10.sp,
+                letterSpacing = 1.5.sp
+            )
+
+            Spacer(Modifier.height(22.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                StatusPill(
+                    value = steps.toString(),
+                    label = "STEPS"
+                )
+                StatusPill(
+                    value = "$battery%",
+                    label = "BATTERY"
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                "SWIPE UP FOR APPS",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 9.sp,
+                letterSpacing = 1.7.sp
+            )
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun AppTile(
-    app: LaunchableApp,
-    onClick: () -> Unit
+private fun StatusPill(
+    value: String,
+    label: String
 ) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 8.sp,
+                letterSpacing = 1.1.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppDrawerScreen(
+    apps: List<LaunchableApp>,
+    searchQuery: String,
+    onSearchQueryChanged: (String) -> Unit,
+    onClose: () -> Unit,
+    repository: LauncherRepository
+) {
+    val filteredApps = remember(apps, searchQuery) {
+        val query = searchQuery.trim()
+        if (query.isEmpty()) {
+            apps
+        } else {
+            apps.filter { it.label.contains(query, ignoreCase = true) }
+        }
+    }
+
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
-        Image(
-            bitmap = app.icon.toBitmap(96, 96).asImageBitmap(),
-            contentDescription = app.label,
-            modifier = Modifier.size(48.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { _, dragAmount ->
+                            if (dragAmount > 20f) {
+                                onClose()
+                            }
+                        }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(4.dp)
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                        RoundedCornerShape(50)
+                    )
+            )
+        }
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChanged,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = {
+                Icon(Icons.Outlined.Search, contentDescription = "Search apps")
+            },
+            placeholder = {
+                Text("Search apps", fontSize = 12.sp)
+            }
         )
-        Spacer(Modifier.height(5.dp))
+
+        Spacer(Modifier.height(10.dp))
+
         Text(
-            text = app.label,
-            fontSize = 10.sp,
-            maxLines = 1
+            if (searchQuery.isBlank()) "ALL APPS" else "${filteredApps.size} APPS",
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.7.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(Modifier.height(6.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(
+                filteredApps,
+                key = { "${it.packageName}/${it.activityName}" }
+            ) { app ->
+                AppTile(
+                    app = app,
+                    onClick = { repository.launch(app) }
+                )
+            }
+        }
+
+        Text(
+            "SWIPE DOWN FOR HOME",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 8.sp,
+            letterSpacing = 1.4.sp
         )
     }
 }
