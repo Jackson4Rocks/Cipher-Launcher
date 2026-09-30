@@ -1090,6 +1090,32 @@ private fun AppDrawerScreen(
 }
 
 @Composable
+private fun AppTile(
+    app: LaunchableApp,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            bitmap = app.icon.toBitmap(96, 96).asImageBitmap(),
+            contentDescription = app.label,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(Modifier.height(5.dp))
+        Text(
+            text = app.label,
+            fontSize = 10.sp,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
 private fun SettingsScreen(
     security: SecurityStore,
     amoled: Boolean,
