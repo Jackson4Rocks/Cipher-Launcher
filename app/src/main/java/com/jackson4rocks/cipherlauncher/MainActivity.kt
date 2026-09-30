@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -41,6 +43,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -74,6 +77,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +102,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.net.URL
 import java.util.Locale
 
 private enum class AppMode {
@@ -1180,9 +1185,23 @@ private fun SettingsScreen(
         SettingButton("Set Cipher as default launcher", openHomeSettings)
         SettingButton("Lock now", onLock)
 
+        Spacer(Modifier.height(14.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(14.dp))
+
+        Text(
+            "PROJECT DEVELOPER",
+            fontSize = 10.sp,
+            letterSpacing = 1.5.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(Modifier.height(8.dp))
+        DeveloperCard()
+
         Spacer(Modifier.height(18.dp))
         Text(
-            "Cipher Launcher 0.1.0",
+            "Cipher Launcher 1.0",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp
         )
@@ -1206,6 +1225,108 @@ private fun SettingsScreen(
 }
 
 private enum class PinTarget { WATCH, HOME }
+
+@Composable
+private fun DeveloperCard() {
+    val context = LocalContext.current
+    val avatarUrl = "https://github.com/Jackson4Rocks.png?size=256"
+    var avatar by remember { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(avatarUrl) {
+        avatar = withContext(Dispatchers.IO) {
+            runCatching {
+                val connection = URL(avatarUrl).openConnection().apply {
+                    connectTimeout = 5000
+                    readTimeout = 5000
+                    useCaches = true
+                }
+                connection.getInputStream().use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
+            }.getOrNull()
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                runCatching {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://github.com/Jackson4Rocks")
+                        )
+                    )
+                }
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (avatar != null) {
+                    Image(
+                        bitmap = avatar!!.asImageBitmap(),
+                        contentDescription = "Leon Sony profile picture",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = CircleShape
+                            ),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        "LS",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "Leon Sony",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Creator & maintainer of Cipher Launcher",
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "@Jackson4Rocks  ·  GitHub",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun SettingSwitch(
