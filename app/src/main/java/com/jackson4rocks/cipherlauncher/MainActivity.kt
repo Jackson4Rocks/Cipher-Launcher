@@ -20,6 +20,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -570,46 +572,55 @@ private fun EntryClock(
     val minute = SimpleDateFormat("mm", Locale.getDefault()).format(now)
     val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier.padding(horizontal = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            hour,
-            fontSize = 118.sp,
-            lineHeight = 104.sp,
-            fontWeight = FontWeight.Light,
-            letterSpacing = (-6).sp
-        )
-        Text(
-            minute,
-            fontSize = 118.sp,
-            lineHeight = 104.sp,
-            fontWeight = FontWeight.Light,
-            letterSpacing = (-6).sp
-        )
-        Text(
-            SimpleDateFormat("a", Locale.getDefault()).format(now),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 12.sp,
-            letterSpacing = 2.4.sp,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            date.uppercase(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 12.sp,
-            letterSpacing = 1.8.sp
-        )
-        Spacer(Modifier.height(18.dp))
-        Text(
-            "SWIPE UP TO UNLOCK",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 9.sp,
-            letterSpacing = 1.5.sp
-        )
+        val clockSize = (maxHeight.value * 0.29f).coerceIn(76f, 112f)
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                hour,
+                color = Color.White,
+                fontSize = clockSize.sp,
+                lineHeight = (clockSize * 0.84f).sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-5).sp
+            )
+            Text(
+                minute,
+                color = Color.White,
+                fontSize = clockSize.sp,
+                lineHeight = (clockSize * 0.84f).sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-5).sp
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                SimpleDateFormat("a", Locale.getDefault()).format(now),
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 11.sp,
+                letterSpacing = 2.2.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                date.uppercase(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                letterSpacing = 1.7.sp
+            )
+            Spacer(Modifier.height(15.dp))
+            Text(
+                "SWIPE UP TO UNLOCK",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 9.sp,
+                letterSpacing = 1.5.sp
+            )
+        }
     }
 }
 
@@ -708,17 +719,19 @@ private fun WatchScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        SimpleDateFormat("HH", Locale.getDefault()).format(now),
+                        SimpleDateFormat("h", Locale.getDefault()).format(now),
                         fontSize = 98.sp,
                         lineHeight = 88.sp,
-                        fontWeight = FontWeight.Light,
+                        color = Color.White,
+                        fontWeight = FontWeight.Normal,
                         letterSpacing = (-4).sp
                     )
                     Text(
                         SimpleDateFormat("mm", Locale.getDefault()).format(now),
+                        color = Color.White,
                         fontSize = 98.sp,
                         lineHeight = 88.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Normal,
                         letterSpacing = (-4).sp
                     )
                     Spacer(Modifier.height(10.dp))
@@ -903,9 +916,10 @@ private fun HomeOverviewScreen(
             ) {
                 Text(
                     time,
+                    color = Color.White,
                     fontSize = 62.sp,
                     lineHeight = 60.sp,
-                    fontWeight = FontWeight.Light,
+                    fontWeight = FontWeight.Normal,
                     letterSpacing = (-3).sp
                 )
                 Spacer(Modifier.width(7.dp))
@@ -1007,6 +1021,26 @@ private fun AppDrawerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val startY = down.position.y
+                    var closed = false
+
+                    do {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: break
+                        if (
+                            !closed &&
+                            startY > size.height / 2f &&
+                            change.position.y - startY > 55f
+                        ) {
+                            closed = true
+                            onClose()
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            }
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Box(
