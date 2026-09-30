@@ -1,10 +1,8 @@
 package com.jackson4rocks.cipherlauncher
 
 import android.Manifest
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.BatteryManager
 import android.os.Build
@@ -115,16 +113,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var settings: SettingsStore
     private lateinit var stepCounter: StepCounter
     private lateinit var launcherRepository: LauncherRepository
-    private var screenOffRegistered = false
     private val lockGeneration = mutableIntStateOf(0)
-
-    private val screenOffReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == Intent.ACTION_SCREEN_OFF) {
-                runOnUiThread { lockGeneration.intValue++ }
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,22 +150,12 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         stepCounter.start()
-        if (!screenOffRegistered) {
-            ContextCompat.registerReceiver(
-                this,
-                screenOffReceiver,
-                IntentFilter(Intent.ACTION_SCREEN_OFF),
-                ContextCompat.RECEIVER_EXPORTED
-            )
-            screenOffRegistered = true
-        }
     }
 
     override fun onStop() {
-        if (screenOffRegistered) {
-            unregisterReceiver(screenOffReceiver)
-            screenOffRegistered = false
-        }
+        // Leaving the launcher is a lock boundary. This covers screen-off reliably
+        // and also locks when the launcher is sent to the background.
+        lockGeneration.intValue++
         stepCounter.stop()
         super.onStop()
     }
@@ -1023,19 +1002,25 @@ private fun AppDrawerScreen(
             .background(MaterialTheme.colorScheme.background)
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val down = awaitFirstDown(
+                        requireUnconsumed = false,
+                        pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                    )
                     val startY = down.position.y
                     var closed = false
 
                     do {
-                        val event = awaitPointerEvent()
+                        val event = awaitPointerEvent(
+                            androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                        )
                         val change = event.changes.firstOrNull() ?: break
                         if (
                             !closed &&
-                            startY > size.height / 2f &&
-                            change.position.y - startY > 55f
+                            startY >= size.height * 0.5f &&
+                            change.position.y - startY > 45f
                         ) {
                             closed = true
+                            change.consume()
                             onClose()
                         }
                     } while (event.changes.any { it.pressed })
@@ -1046,16 +1031,7 @@ private fun AppDrawerScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(22.dp)
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onVerticalDrag = { _, dragAmount ->
-                            if (dragAmount > 20f) {
-                                onClose()
-                            }
-                        }
-                    )
-                },
+                .height(22.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
