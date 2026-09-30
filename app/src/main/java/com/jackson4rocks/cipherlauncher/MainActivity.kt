@@ -160,11 +160,6 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 
-    override fun onBackPressed() {
-        // Cipher is the home launcher: never let repeated Back presses finish the
-        // launcher activity. Individual Compose screens handle their own Back actions.
-    }
-
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) configureWindow(window)
@@ -217,6 +212,15 @@ private fun CipherLauncherApp(
     LaunchedEffect(lockSignal) {
         if (lockSignal != 0) {
             mode = AppMode.ENTRY
+        }
+    }
+
+    BackHandler {
+        when (mode) {
+            AppMode.ENTRY -> Unit
+            AppMode.WATCH -> mode = AppMode.ENTRY
+            AppMode.HOME -> Unit
+            AppMode.SETTINGS -> mode = AppMode.HOME
         }
     }
 
@@ -853,6 +857,11 @@ private fun HomeOverviewScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = onSettings
+                )
+            }
+            .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onVerticalDrag = { _, dragAmount ->
                         if (dragAmount < -24f) {
@@ -1128,8 +1137,16 @@ private fun SettingsScreen(
             IconButton(onClick = onBack) {
                 Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
             }
-            Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+            Text("Launcher Settings", fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
         }
+
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "Under construction.... i cant do everything in one go bruh",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+        )
 
         Spacer(Modifier.height(14.dp))
         Text("APPEARANCE", fontSize = 10.sp, letterSpacing = 1.5.sp, color = MaterialTheme.colorScheme.primary)
