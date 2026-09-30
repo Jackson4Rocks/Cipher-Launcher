@@ -1,8 +1,10 @@
 package com.jackson4rocks.cipherlauncher
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.BatteryManager
 import android.os.Build
@@ -38,7 +40,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -61,8 +62,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,7 +89,10 @@ import com.jackson4rocks.cipherlauncher.data.LaunchableApp
 import com.jackson4rocks.cipherlauncher.data.SettingsStore
 import com.jackson4rocks.cipherlauncher.security.SecurityStore
 import com.jackson4rocks.cipherlauncher.sensors.StepCounter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -104,6 +110,16 @@ class MainActivity : ComponentActivity() {
     private lateinit var settings: SettingsStore
     private lateinit var stepCounter: StepCounter
     private lateinit var launcherRepository: LauncherRepository
+    private var screenOffRegistered = false
+    private val lockGeneration = mutableIntStateOf(0)
+
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                runOnUiThread { lockGeneration.intValue++ }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,7 +146,8 @@ class MainActivity : ComponentActivity() {
                         amoled = it
                         settings.amoled = it
                     },
-                    openHomeSettings = ::openHomeSettings
+                    openHomeSettings = ::openHomeSettings,
+                    lockSignal = lockGeneration.intValue
                 )
             }
         }
@@ -139,9 +156,22 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         stepCounter.start()
+        if (!screenOffRegistered) {
+            ContextCompat.registerReceiver(
+                this,
+                screenOffReceiver,
+                IntentFilter(Intent.ACTION_SCREEN_OFF),
+                ContextCompat.RECEIVER_EXPORTED
+            )
+            screenOffRegistered = true
+        }
     }
 
     override fun onStop() {
+        if (screenOffRegistered) {
+            unregisterReceiver(screenOffReceiver)
+            screenOffRegistered = false
+        }
         stepCounter.stop()
         super.onStop()
     }
@@ -182,7 +212,8 @@ private fun CipherLauncherApp(
     battery: Int,
     amoled: Boolean,
     onAmoledChanged: (Boolean) -> Unit,
-    openHomeSettings: () -> Unit
+    openHomeSettings: () -> Unit,
+    lockSignal: Int
 ) {
     val context = LocalContext.current
     var configured by remember { mutableStateOf(security.isConfigured()) }
@@ -193,6 +224,12 @@ private fun CipherLauncherApp(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
+
+    LaunchedEffect(lockSignal) {
+        if (lockSignal != 0) {
+            mode = AppMode.ENTRY
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (
@@ -228,16 +265,12 @@ private fun CipherLauncherApp(
 
         mode == AppMode.ENTRY -> EntryScreen(
             onUnlock = { pin ->
-                when {
-                    security.verifyWatchPin(pin) -> {
-                        mode = AppMode.WATCH
-                        true
+                withContext(Dispatchers.Default) {
+                    when {
+                        security.verifyWatchPin(pin) -> AppMode.WATCH
+                        security.verifyHomePin(pin) -> AppMode.HOME
+                        else -> null
                     }
-                    security.verifyHomePin(pin) -> {
-                        mode = AppMode.HOME
-                        true
-                    }
-                    else -> false
                 }
             }
         )
@@ -342,20 +375,31 @@ private fun SetupScreen(
 
 @Composable
 private fun EntryScreen(
-    onUnlock: (String) -> Boolean
+    onUnlock: suspend (String) -> AppMode?
 ) {
     var pin by remember { mutableStateOf("") }
     var showPad by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
+    var unlocking by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     fun submit() {
-        if (pin.isEmpty()) return
+        if (pin.isEmpty() || unlocking) return
 
-        val unlocked = onUnlock(pin)
-        error = !unlocked
-        if (unlocked) {
-            pin = ""
-            showPad = false
+        val enteredPin = pin
+        unlocking = true
+        error = false
+
+        scope.launch {
+            val unlockedMode = onUnlock(enteredPin)
+            unlocking = false
+
+            if (unlockedMode != null) {
+                pin = ""
+                showPad = false
+            } else {
+                error = true
+            }
         }
     }
 
@@ -364,7 +408,7 @@ private fun EntryScreen(
             .fillMaxSize()
             .background(Color.Black)
             .pointerInput(showPad) {
-                if (!showPad) {
+                if (!showPad && !unlocking) {
                     detectVerticalDragGestures(
                         onVerticalDrag = { _, dragAmount ->
                             if (dragAmount < -18f) {
@@ -393,6 +437,7 @@ private fun EntryScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
+                        enabled = !unlocking,
                         onClick = {
                             pin = ""
                             error = false
@@ -421,7 +466,11 @@ private fun EntryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        if (pin.isEmpty()) "ENTER PIN" else "•".repeat(pin.length),
+                        when {
+                            unlocking -> "UNLOCKING…"
+                            pin.isEmpty() -> "ENTER PIN"
+                            else -> "•".repeat(pin.length)
+                        },
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Medium,
@@ -440,6 +489,7 @@ private fun EntryScreen(
                 }
 
                 NumberPad(
+                    enabled = !unlocking,
                     onDigit = { digit ->
                         if (pin.length < 12) {
                             pin += digit
@@ -456,6 +506,7 @@ private fun EntryScreen(
                 )
 
                 TextButton(
+                    enabled = !unlocking,
                     onClick = {
                         pin = ""
                         error = false
@@ -528,6 +579,7 @@ private fun EntryClock(
 
 @Composable
 private fun NumberPad(
+    enabled: Boolean,
     onDigit: (String) -> Unit,
     onBackspace: () -> Unit,
     onSubmit: () -> Unit
@@ -553,7 +605,7 @@ private fun NumberPad(
                                 color = Color(0xFF151619),
                                 shape = RoundedCornerShape(22.dp)
                             )
-                            .clickable {
+                            .clickable(enabled = enabled) {
                                 when (key) {
                                     "⌫" -> onBackspace()
                                     "✓" -> onSubmit()
@@ -587,7 +639,7 @@ private fun WatchScreen(
     LaunchedEffect(Unit) {
         while (true) {
             now = Date()
-            delay(if (showSeconds) 1000L else 30_000L)
+            delay(if (showSeconds) 1000L else 1000L)
         }
     }
 
@@ -612,10 +664,12 @@ private fun WatchScreen(
             Box(
                 modifier = Modifier
                     .width(pageWidth)
-                    .fillMaxSize(),
+                    .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         SimpleDateFormat("HH", Locale.getDefault()).format(now),
                         fontSize = 98.sp,
@@ -630,13 +684,22 @@ private fun WatchScreen(
                         fontWeight = FontWeight.Light,
                         letterSpacing = (-4).sp
                     )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+                            .format(now)
+                            .uppercase(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.6.sp
+                    )
                 }
             }
 
             Box(
                 modifier = Modifier
                     .width(pageWidth)
-                    .fillMaxSize(),
+                    .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
