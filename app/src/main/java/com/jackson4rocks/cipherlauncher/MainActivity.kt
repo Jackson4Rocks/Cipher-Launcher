@@ -1005,32 +1005,6 @@ private fun AppDrawerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(
-                        requireUnconsumed = false,
-                        pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
-                    )
-                    val startY = down.position.y
-                    var closed = false
-
-                    do {
-                        val event = awaitPointerEvent(
-                            androidx.compose.ui.input.pointer.PointerEventPass.Initial
-                        )
-                        val change = event.changes.firstOrNull() ?: break
-                        if (
-                            !closed &&
-                            startY >= size.height * 0.5f &&
-                            change.position.y - startY > 45f
-                        ) {
-                            closed = true
-                            change.consume()
-                            onClose()
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            }
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Box(
@@ -1094,7 +1068,7 @@ private fun AppDrawerScreen(
         }
 
         Text(
-            "SWIPE DOWN FOR HOME",
+            "PRESS BACK TO RETURN HOME",
             modifier = Modifier.fillMaxWidth(),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
