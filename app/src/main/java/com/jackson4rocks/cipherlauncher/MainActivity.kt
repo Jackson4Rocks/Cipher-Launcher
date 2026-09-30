@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -272,7 +273,8 @@ private fun CipherLauncherApp(
                         else -> null
                     }
                 }
-            }
+            },
+            onUnlocked = { mode = it }
         )
 
         mode == AppMode.WATCH -> WatchScreen(
@@ -375,7 +377,8 @@ private fun SetupScreen(
 
 @Composable
 private fun EntryScreen(
-    onUnlock: suspend (String) -> AppMode?
+    onUnlock: suspend (String) -> AppMode?,
+    onUnlocked: (AppMode) -> Unit
 ) {
     var pin by remember { mutableStateOf("") }
     var showPad by remember { mutableStateOf(false) }
@@ -397,6 +400,7 @@ private fun EntryScreen(
             if (unlockedMode != null) {
                 pin = ""
                 showPad = false
+                onUnlocked(unlockedMode)
             } else {
                 error = true
             }
