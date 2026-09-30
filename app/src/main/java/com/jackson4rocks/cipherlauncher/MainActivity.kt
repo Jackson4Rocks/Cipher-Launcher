@@ -364,49 +364,80 @@ private fun EntryScreen(
             .fillMaxSize()
             .background(Color.Black)
             .pointerInput(showPad) {
-                detectVerticalDragGestures(
-                    onVerticalDrag = { _, dragAmount ->
-                        if (dragAmount < -14f) {
-                            showPad = true
-                            error = false
-                        } else if (dragAmount > 20f && showPad) {
-                            showPad = false
-                            error = false
+                if (!showPad) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { _, dragAmount ->
+                            if (dragAmount < -18f) {
+                                showPad = true
+                                error = false
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
     ) {
         if (!showPad) {
-            EntryClock()
+            EntryClock(
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp, vertical = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                EntryClock(compact = true)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            pin = ""
+                            error = false
+                            showPad = false
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Back to lock screen"
+                        )
+                    }
 
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    if (pin.isEmpty()) "Enter PIN" else "•".repeat(pin.length),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 20.sp,
-                    letterSpacing = 4.sp
-                )
-
-                if (error) {
-                    Spacer(Modifier.height(6.dp))
                     Text(
-                        "Wrong PIN",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp
+                        "UNLOCK",
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 2.sp
                     )
+
+                    Spacer(Modifier.size(48.dp))
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        if (pin.isEmpty()) "ENTER PIN" else "•".repeat(pin.length),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 5.sp
+                    )
+
+                    if (error) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "WRONG PIN",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.4.sp
+                        )
+                    }
+                }
 
                 NumberPad(
                     onDigit = { digit ->
@@ -423,19 +454,35 @@ private fun EntryScreen(
                     },
                     onSubmit = ::submit
                 )
+
+                TextButton(
+                    onClick = {
+                        pin = ""
+                        error = false
+                        showPad = false
+                    }
+                ) {
+                    Text(
+                        "BACK TO LOCK SCREEN",
+                        fontSize = 11.sp,
+                        letterSpacing = 1.2.sp
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EntryClock(compact: Boolean = false) {
+private fun EntryClock(
+    modifier: Modifier = Modifier
+) {
     var now by remember { mutableStateOf(Date()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             now = Date()
-            delay(1000)
+            delay(1000L)
         }
     }
 
@@ -444,36 +491,37 @@ private fun EntryClock(compact: Boolean = false) {
     val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
 
     Column(
-        modifier = if (compact) {
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp)
-        } else {
-            Modifier.fillMaxSize()
-        },
+        modifier = modifier.padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             hour,
-            fontSize = if (compact) 48.sp else 78.sp,
-            lineHeight = if (compact) 46.sp else 70.sp,
+            fontSize = 82.sp,
+            lineHeight = 74.sp,
             fontWeight = FontWeight.Light,
-            letterSpacing = (-3).sp
+            letterSpacing = (-4).sp
         )
         Text(
             minute,
-            fontSize = if (compact) 48.sp else 78.sp,
-            lineHeight = if (compact) 46.sp else 70.sp,
+            fontSize = 82.sp,
+            lineHeight = 74.sp,
             fontWeight = FontWeight.Light,
-            letterSpacing = (-3).sp
+            letterSpacing = (-4).sp
         )
-        Spacer(Modifier.height(if (compact) 2.dp else 12.dp))
+        Spacer(Modifier.height(14.dp))
         Text(
             date.uppercase(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = if (compact) 10.sp else 12.sp,
-            letterSpacing = 1.6.sp
+            fontSize = 12.sp,
+            letterSpacing = 1.8.sp
+        )
+        Spacer(Modifier.height(18.dp))
+        Text(
+            "SWIPE UP TO UNLOCK",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp,
+            letterSpacing = 1.5.sp
         )
     }
 }
@@ -492,18 +540,18 @@ private fun NumberPad(
     )
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         keys.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { key ->
                     Box(
                         modifier = Modifier
-                            .size(62.dp)
+                            .size(68.dp)
                             .background(
                                 color = Color(0xFF151619),
-                                shape = RoundedCornerShape(20.dp)
+                                shape = RoundedCornerShape(22.dp)
                             )
                             .clickable {
                                 when (key) {
@@ -516,7 +564,7 @@ private fun NumberPad(
                     ) {
                         Text(
                             key,
-                            fontSize = if (key.length == 1 && key[0].isDigit()) 22.sp else 18.sp,
+                            fontSize = if (key.length == 1 && key[0].isDigit()) 22.sp else 19.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
