@@ -13,7 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 
-class StepCounter(context: Context) : SensorEventListener {
+class StepCounter(private val context: Context) : SensorEventListener {
 
     private val manager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val sensor = manager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
