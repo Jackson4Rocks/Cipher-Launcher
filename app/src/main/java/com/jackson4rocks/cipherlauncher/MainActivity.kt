@@ -568,7 +568,7 @@ private fun EntryClock(
         }
     }
 
-    val hour = SimpleDateFormat("h", Locale.getDefault()).format(now)
+    val hour = SimpleDateFormat("hh", Locale.getDefault()).format(now)
     val minute = SimpleDateFormat("mm", Locale.getDefault()).format(now)
     val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
 
@@ -719,7 +719,7 @@ private fun WatchScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        SimpleDateFormat("h", Locale.getDefault()).format(now),
+                        SimpleDateFormat("hh", Locale.getDefault()).format(now),
                         fontSize = 98.sp,
                         lineHeight = 88.sp,
                         color = Color.White,
