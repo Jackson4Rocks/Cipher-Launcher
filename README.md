@@ -79,16 +79,6 @@ On Android 10 and newer, Android requires the `ACTIVITY_RECOGNITION` permission 
 3. Set Cipher as your default Home app when Android asks.
 4. You're ready. ⌚
 
-### 🛠️ Building from source
-
-For developers who want to build it themselves:
-
-- **JDK 17**
-- **Android SDK 36**
-- **Android Gradle Plugin 9.4.x**
-
-Open the project in Android Studio and let Gradle sync, or build the debug APK with the included GitHub Actions workflow.
-
 ## 🗺️ What's next?
 
 Cipher is still early, and there's a lot more we can do. 🚧
@@ -112,4 +102,4 @@ It's trying to make Android on a tiny screen feel **intentional, simple, and act
 
 ---
 
-Made with ❤️ for tiny Android devices.
+Project maintained by Leon Sony
