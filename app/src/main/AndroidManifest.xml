@@ -12,6 +12,8 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/cipher_launcher_icon"
+        android:roundIcon="@drawable/cipher_launcher_icon"
         android:label="Cipher Launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.CipherLauncher">
