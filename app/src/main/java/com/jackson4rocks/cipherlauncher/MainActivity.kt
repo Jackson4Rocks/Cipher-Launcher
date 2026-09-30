@@ -548,9 +548,13 @@ private fun WatchScreen(
             .fillMaxSize()
             .background(Color.Black)
             .pointerInput(Unit) {
-                detectTapGestures { onTap() }
+                detectTapGestures(
+                    onLongPress = { onTap() }
+                )
             }
     ) {
+        val pageWidth = maxWidth
+
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -559,7 +563,7 @@ private fun WatchScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .width(maxWidth)
+                    .width(pageWidth)
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
