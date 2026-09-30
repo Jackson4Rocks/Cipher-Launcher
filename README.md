@@ -48,7 +48,7 @@ Cipher is designed around a few easy gestures:
 
 - **Lock screen → Swipe up:** open PIN keypad
 - **Home → Swipe up:** open app drawer
-- **App drawer → Swipe down from the middle/bottom half:** return home
+- **App drawer → Press Back:** return home
 - **Watch Mode → Long press:** return to the lock screen
 - **Back button:** returns within Cipher without intentionally closing the launcher
 
