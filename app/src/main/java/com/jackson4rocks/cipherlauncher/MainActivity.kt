@@ -858,7 +858,7 @@ private fun HomeOverviewScreen(
             .background(MaterialTheme.colorScheme.background)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onLongPress = onSettings
+                    onLongPress = { onSettings() }
                 )
             }
             .pointerInput(Unit) {
