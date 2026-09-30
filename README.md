@@ -35,7 +35,7 @@ Requirements:
 - Android SDK 36
 - Android Gradle Plugin 9.4.x
 
-The project targets Android 10+ because the first release uses the activity recognition permission for the step counter.
+The project supports Android 7.0+ (API 24). On Android 10+ the app requests the runtime ACTIVITY_RECOGNITION permission for step counting; older Android versions use the sensor without that runtime permission.
 
 ## Roadmap
 
