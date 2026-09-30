@@ -17,7 +17,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,11 +31,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -139,6 +144,11 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         stepCounter.stop()
         super.onStop()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) configureWindow(window)
     }
 
     private fun readBatteryPercent(): Int {
@@ -335,49 +345,183 @@ private fun EntryScreen(
     onUnlock: (String) -> Boolean
 ) {
     var pin by remember { mutableStateOf("") }
+    var showPad by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
 
-    Column(
+    fun submit() {
+        if (pin.isEmpty()) return
+
+        val unlocked = onUnlock(pin)
+        error = !unlocked
+        if (unlocked) {
+            pin = ""
+            showPad = false
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF050507))
-            .padding(24.dp),
+            .background(Color.Black)
+            .pointerInput(showPad) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { _, dragAmount ->
+                        if (dragAmount < -14f) {
+                            showPad = true
+                            error = false
+                        } else if (dragAmount > 20f && showPad) {
+                            showPad = false
+                            error = false
+                        }
+                    }
+                )
+            }
+    ) {
+        if (!showPad) {
+            EntryClock()
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 28.dp, vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                EntryClock(compact = true)
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    if (pin.isEmpty()) "Enter PIN" else "•".repeat(pin.length),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 20.sp,
+                    letterSpacing = 4.sp
+                )
+
+                if (error) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Wrong PIN",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                NumberPad(
+                    onDigit = { digit ->
+                        if (pin.length < 12) {
+                            pin += digit
+                            error = false
+                        }
+                    },
+                    onBackspace = {
+                        if (pin.isNotEmpty()) {
+                            pin = pin.dropLast(1)
+                            error = false
+                        }
+                    },
+                    onSubmit = ::submit
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EntryClock(compact: Boolean = false) {
+    var now by remember { mutableStateOf(Date()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Date()
+            delay(1000)
+        }
+    }
+
+    val hour = SimpleDateFormat("HH", Locale.getDefault()).format(now)
+    val minute = SimpleDateFormat("mm", Locale.getDefault()).format(now)
+    val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
+
+    Column(
+        modifier = if (compact) {
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+        } else {
+            Modifier.fillMaxSize()
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Lock,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(34.dp)
+        Text(
+            hour,
+            fontSize = if (compact) 48.sp else 78.sp,
+            lineHeight = if (compact) 46.sp else 70.sp,
+            fontWeight = FontWeight.Light,
+            letterSpacing = (-3).sp
         )
-        Spacer(Modifier.height(10.dp))
-        Text("Enter PIN", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(14.dp))
-        OutlinedTextField(
-            value = pin,
-            onValueChange = {
-                pin = it.filter(Char::isDigit).take(12)
-                error = false
-            },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            minute,
+            fontSize = if (compact) 48.sp else 78.sp,
+            lineHeight = if (compact) 46.sp else 70.sp,
+            fontWeight = FontWeight.Light,
+            letterSpacing = (-3).sp
         )
-        Spacer(Modifier.height(12.dp))
-        Button(
-            onClick = {
-                error = !onUnlock(pin)
-                if (!error) pin = ""
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Unlock")
-        }
-        if (error) {
-            Spacer(Modifier.height(8.dp))
-            Text("Wrong PIN.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+        Spacer(Modifier.height(if (compact) 2.dp else 12.dp))
+        Text(
+            date.uppercase(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = if (compact) 10.sp else 12.sp,
+            letterSpacing = 1.6.sp
+        )
+    }
+}
+
+@Composable
+private fun NumberPad(
+    onDigit: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    val keys = listOf(
+        "1", "2", "3",
+        "4", "5", "6",
+        "7", "8", "9",
+        "⌫", "0", "✓"
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        keys.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { key ->
+                    Box(
+                        modifier = Modifier
+                            .size(62.dp)
+                            .background(
+                                color = Color(0xFF151619),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .clickable {
+                                when (key) {
+                                    "⌫" -> onBackspace()
+                                    "✓" -> onSubmit()
+                                    else -> onDigit(key)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            key,
+                            fontSize = if (key.length == 1 && key[0].isDigit()) 22.sp else 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -390,59 +534,106 @@ private fun WatchScreen(
     onTap: () -> Unit
 ) {
     var now by remember { mutableStateOf(Date()) }
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
         while (true) {
             now = Date()
-            delay(1000)
+            delay(if (showSeconds) 1000L else 30_000L)
         }
     }
 
-    val timePattern = if (showSeconds) "HH:mm:ss" else "HH:mm"
-    val time = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
-    val date = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(now)
-
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures { onTap() }
-            },
-        contentAlignment = Alignment.Center
+            }
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                time,
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Light,
-                letterSpacing = (-1).sp
-            )
-            Text(
-                date.uppercase(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp,
-                letterSpacing = 1.5.sp
-            )
-            Spacer(Modifier.height(22.dp))
-            Text(
-                steps.toString(),
-                fontSize = 23.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "STEPS",
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 10.sp,
-                letterSpacing = 2.sp
-            )
-            Spacer(Modifier.height(18.dp))
-            Text(
-                "BATTERY  $battery%",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 10.sp,
-                letterSpacing = 1.sp
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .horizontalScroll(scrollState),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(maxWidth)
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        SimpleDateFormat("HH", Locale.getDefault()).format(now),
+                        fontSize = 98.sp,
+                        lineHeight = 88.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = (-4).sp
+                    )
+                    Text(
+                        SimpleDateFormat("mm", Locale.getDefault()).format(now),
+                        fontSize = 98.sp,
+                        lineHeight = 88.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = (-4).sp
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(maxWidth)
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        SimpleDateFormat("EEE", Locale.getDefault())
+                            .format(now)
+                            .uppercase(),
+                        fontSize = 52.sp,
+                        lineHeight = 52.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        SimpleDateFormat("dd", Locale.getDefault()).format(now),
+                        fontSize = 74.sp,
+                        lineHeight = 68.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                    Text(
+                        SimpleDateFormat("MMMM", Locale.getDefault())
+                            .format(now)
+                            .uppercase(),
+                        fontSize = 23.sp,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(Modifier.height(28.dp))
+                    Text(
+                        steps.toString(),
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "STEPS",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 9.sp,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        "BATTERY  $battery%",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.2.sp
+                    )
+                }
+            }
         }
     }
 }
