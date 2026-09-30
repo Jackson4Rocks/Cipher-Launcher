@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.jackson4rocks.cipherlauncher"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.jackson4rocks.cipherlauncher"
