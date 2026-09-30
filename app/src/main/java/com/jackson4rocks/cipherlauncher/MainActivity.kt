@@ -434,12 +434,14 @@ private fun EntryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.Center
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -452,47 +454,37 @@ private fun EntryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ArrowBack,
-                            contentDescription = "Back to lock screen"
+                            contentDescription = "Back to lock screen",
+                            tint = Color.White
                         )
                     }
 
-                    Text(
-                        "UNLOCK",
-                        modifier = Modifier.weight(1f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 2.sp
-                    )
+                    Spacer(Modifier.weight(1f))
 
-                    Spacer(Modifier.size(48.dp))
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
                     Text(
                         when {
                             unlocking -> "UNLOCKING…"
-                            pin.isEmpty() -> "ENTER PIN"
-                            else -> "•".repeat(pin.length)
+                            error -> "WRONG PIN"
+                            else -> "ENTER PIN"
                         },
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 24.sp,
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Medium,
-                        letterSpacing = 5.sp
+                        letterSpacing = 1.7.sp
                     )
 
-                    if (error) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "WRONG PIN",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.4.sp
-                        )
-                    }
+                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.size(48.dp))
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                PinIndicators(
+                    length = pin.length,
+                    maximum = 12
+                )
+
+                Spacer(Modifier.height(22.dp))
 
                 NumberPad(
                     enabled = !unlocking,
@@ -511,6 +503,8 @@ private fun EntryScreen(
                     onSubmit = ::submit
                 )
 
+                Spacer(Modifier.height(14.dp))
+
                 TextButton(
                     enabled = !unlocking,
                     onClick = {
@@ -521,11 +515,40 @@ private fun EntryScreen(
                 ) {
                     Text(
                         "BACK TO LOCK SCREEN",
-                        fontSize = 11.sp,
-                        letterSpacing = 1.2.sp
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 9.sp,
+                        letterSpacing = 1.3.sp
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PinIndicators(
+    length: Int,
+    maximum: Int
+) {
+    val count = maxOf(4, minOf(length, maximum))
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(count) { index ->
+            Box(
+                modifier = Modifier
+                    .size(9.dp)
+                    .background(
+                        color = if (index < length) {
+                            Color.White
+                        } else {
+                            Color.White.copy(alpha = 0.20f)
+                        },
+                        shape = RoundedCornerShape(50)
+                    )
+            )
         }
     }
 }
@@ -613,10 +636,10 @@ private fun NumberPad(
                 row.forEach { key ->
                     Box(
                         modifier = Modifier
-                            .size(68.dp)
+                            .size(width = 76.dp, height = 56.dp)
                             .background(
-                                color = Color(0xFF151619),
-                                shape = RoundedCornerShape(22.dp)
+                                color = Color(0xFF2A2A2D),
+                                shape = RoundedCornerShape(12.dp)
                             )
                             .clickable(enabled = enabled) {
                                 when (key) {
@@ -629,7 +652,8 @@ private fun NumberPad(
                     ) {
                         Text(
                             key,
-                            fontSize = if (key.length == 1 && key[0].isDigit()) 22.sp else 19.sp,
+                            color = Color.White,
+                            fontSize = if (key.length == 1 && key[0].isDigit()) 21.sp else 20.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
