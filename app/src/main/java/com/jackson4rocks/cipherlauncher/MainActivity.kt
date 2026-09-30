@@ -587,7 +587,7 @@ private fun WatchScreen(
 
             Box(
                 modifier = Modifier
-                    .width(maxWidth)
+                    .width(pageWidth)
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
