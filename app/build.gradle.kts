@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.jackson4rocks.cipherlauncher"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.jackson4rocks.cipherlauncher"
@@ -28,13 +28,13 @@ android {
 
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.07.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.activity:activity-compose:1.11.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
 
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
