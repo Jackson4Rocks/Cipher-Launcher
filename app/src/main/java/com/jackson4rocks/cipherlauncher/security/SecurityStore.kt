@@ -40,7 +40,7 @@ class SecurityStore(context: Context) {
         pin.length in 4..12 && pin.all(Char::isDigit)
 
     fun changeWatchPin(current: String, next: String): Boolean {
-        if (!verifyWatchPin(current) || !validPin(next)) return false
+        if (!verifyWatchPin(current) || !validPin(next) || verifyHomePin(next)) return false
         val record = createRecord(next)
         prefs.edit()
             .putString(KEY_WATCH_SALT, record.first)
@@ -50,7 +50,7 @@ class SecurityStore(context: Context) {
     }
 
     fun changeHomePin(current: String, next: String): Boolean {
-        if (!verifyHomePin(current) || !validPin(next)) return false
+        if (!verifyHomePin(current) || !validPin(next) || verifyWatchPin(next)) return false
         val record = createRecord(next)
         prefs.edit()
             .putString(KEY_HOME_SALT, record.first)
