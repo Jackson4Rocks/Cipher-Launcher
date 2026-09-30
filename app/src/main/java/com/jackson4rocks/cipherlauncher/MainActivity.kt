@@ -541,7 +541,7 @@ private fun EntryClock(
         }
     }
 
-    val hour = SimpleDateFormat("HH", Locale.getDefault()).format(now)
+    val hour = SimpleDateFormat("h", Locale.getDefault()).format(now)
     val minute = SimpleDateFormat("mm", Locale.getDefault()).format(now)
     val date = SimpleDateFormat("EEE, d MMMM", Locale.getDefault()).format(now)
 
@@ -563,6 +563,13 @@ private fun EntryClock(
             lineHeight = 104.sp,
             fontWeight = FontWeight.Light,
             letterSpacing = (-6).sp
+        )
+        Text(
+            SimpleDateFormat("a", Locale.getDefault()).format(now),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+            letterSpacing = 2.4.sp,
+            fontWeight = FontWeight.Medium
         )
         Spacer(Modifier.height(16.dp))
         Text(
@@ -775,7 +782,7 @@ private fun HomeScreen(
         }
     }
 
-    val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now)
+    val time = SimpleDateFormat("h:mm a", Locale.getDefault()).format(now)
     val date = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(now)
 
     Column(
