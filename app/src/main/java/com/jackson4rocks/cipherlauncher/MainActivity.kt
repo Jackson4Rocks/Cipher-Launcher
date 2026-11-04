@@ -101,6 +101,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -846,25 +847,133 @@ private fun WatchScreen(
                     Spacer(Modifier.height(28.dp))
                     Text(
                         steps.toString(),
+                        color = Color.White,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         "STEPS",
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.White.copy(alpha = 0.7f),
                         fontSize = 9.sp,
                         letterSpacing = 2.sp
                     )
                     Spacer(Modifier.height(18.dp))
                     Text(
                         "BATTERY  $battery%",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp,
                         letterSpacing = 1.2.sp
                     )
                 }
             }
+
+            Box(
+                modifier = Modifier
+                    .width(pageWidth)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                CalendarPage(now = now)
+            }
         }
+    }
+}
+
+@Composable
+private fun CalendarPage(now: Date) {
+    val calendar = Calendar.getInstance()
+    calendar.time = now
+    val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
+
+    calendar.set(Calendar.DAY_OF_MONTH, 1)
+    val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+    val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+    val dayNames = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+    val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(now)
+
+    BoxWithConstraints(
+        contentAlignment = Alignment.Center
+    ) {
+        val cellWidth = (maxWidth - 12.dp) / 7f
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                monthName.uppercase(),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp
+            )
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            dayNames.forEach { name ->
+                Text(
+                    name,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .width(cellWidth)
+                        .height(20.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        val totalCells = (firstDayOfWeek - 1 + daysInMonth)
+        val rows = (totalCells + 6) / 7
+        repeat(rows) { rowIndex ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(7) { colIndex ->
+                    val cellIndex = rowIndex * 7 + colIndex
+                    val dayNumber = cellIndex - (firstDayOfWeek - 1) + 1
+                    val isCurrentDay = dayNumber == dayOfMonth
+                    val isValid = dayNumber >= 1 && dayNumber <= daysInMonth
+
+                    Box(
+                        modifier = Modifier
+                            .width(cellWidth)
+                            .height(32.dp)
+                            .background(
+                                color = if (isCurrentDay && isValid) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    Color.Transparent
+                                },
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isValid) {
+                            Text(
+                                dayNumber.toString(),
+                                color = if (isCurrentDay) Color.Black else Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = if (isCurrentDay) FontWeight.Bold else FontWeight.Normal,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+            if (rowIndex < rows - 1) {
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+    }
     }
 }
 
@@ -1096,13 +1205,14 @@ private fun StatusPill(
         ) {
             Text(
                 value,
+                color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 label,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.75f),
                 fontSize = 8.sp,
                 letterSpacing = 1.1.sp
             )
